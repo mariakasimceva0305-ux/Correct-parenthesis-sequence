@@ -1,18 +1,16 @@
 #ifndef CBS_H
 #define CBS_H
 
-#include <stddef.h>
-
-typedef struct MyBracketStruct {
+typedef struct {
     char* skobki;
     unsigned dlina;
 } my_bs_t;
 
-typedef struct CbsIterator {
+typedef struct {
     my_bs_t tekuyee_znachenie;
+    char* sleduyushaya_posledovatelnost;
     unsigned N_param;
     int zakoncheno_li;
-    char* sleduyushaya_posledovatelnost;
 } iterator_t;
 
 void nachalo_iteracii(iterator_t *moj_iterator, unsigned n);
