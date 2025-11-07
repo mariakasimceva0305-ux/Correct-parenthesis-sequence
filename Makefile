@@ -1,34 +1,31 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c99
-
+CFLAGS = -Wall -Wextra -Werror -pedantic -std=c99
+INCLUDE = -Iinclude
 SRC_DIR = src
 TEST_DIR = test
 LIB_DIR = lib
 
-SRCS = $(SRC_DIR)/cbs.c
-OBJS = $(SRC_DIR)/cbs.o
+SOURCES = $(SRC_DIR)/cbs.c
+TEST_SOURCE = $(TEST_DIR)/test.c
 
-TEST_SRC = $(TEST_DIR)/test.c
+LIBRARY = $(LIB_DIR)/libcbs.a
 TEST_EXEC = $(TEST_DIR)/run
 
-all: $(LIB_DIR)/libcbs.a $(TEST_EXEC)
+all: $(LIBRARY) $(TEST_EXEC)
 
-$(LIB_DIR):
-	mkdir -p $(LIB_DIR)
+$(LIBRARY): $(SOURCES)
+	@mkdir -p $(LIB_DIR)
+	$(CC) $(CFLAGS) $(INCLUDE) -c $(SOURCES) -o $(SRC_DIR)/cbs.o
+	ar rcs $(LIBRARY) $(SRC_DIR)/cbs.o
 
-$(OBJS): $(SRCS) | $(LIB_DIR)
-	$(CC) $(CFLAGS) -c $(SRCS) -o $(OBJS)
-
-$(LIB_DIR)/libcbs.a: $(OBJS)
-	ar rcs $@ $(OBJS)
-
-$(TEST_EXEC): $(TEST_SRC) $(LIB_DIR)/libcbs.a
-	$(CC) $(CFLAGS) -o $@ $(TEST_SRC) -L$(LIB_DIR) -lcbs
+$(TEST_EXEC): $(TEST_SOURCE) $(LIBRARY)
+	@mkdir -p $(TEST_DIR)
+	$(CC) $(CFLAGS) $(INCLUDE) $(TEST_SOURCE) -L$(LIB_DIR) -lcbs -o $(TEST_EXEC)
 
 test: $(TEST_EXEC)
 	./$(TEST_EXEC)
 
 clean:
-	rm -rf $(LIB_DIR) $(TEST_EXEC) $(OBJS)
+	rm -rf $(LIB_DIR) $(TEST_EXEC) $(SRC_DIR)/*.o
 
 .PHONY: all test clean
