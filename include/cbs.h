@@ -1,22 +1,25 @@
 #ifndef CBS_H
 #define CBS_H
 
-typedef struct {
-    char* skobki;
-    unsigned dlina;
-} my_bs_t;
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
 
-typedef struct {
-    my_bs_t tekuyee_znachenie;
-    char* sleduyushaya_posledovatelnost;
-    unsigned N_param;
-    int zakoncheno_li;
+typedef struct CBS {
+    unsigned n;
+    char *sequence;
+} cbs_t;
+
+typedef struct ObsIterator {
+    cbs_t value;
+    int has_next;
+    unsigned n;
 } iterator_t;
 
-void nachalo_iteracii(iterator_t *moj_iterator, unsigned n);
-const my_bs_t *poluchit_tekuyee(const iterator_t *moj_iterator);
-int est_li_sleduyushiy(const iterator_t *moj_iterator);
-void pereyti_k_sleduyushemu(iterator_t *moj_iterator);
-void zakonchit_iteraciyu(iterator_t *moj_iterator);
+void iterator_init(iterator_t *i, unsigned n);
+const cbs_t *iterator_value(const iterator_t *i);
+int iterator_has_next(const iterator_t *i);
+void iterator_next(iterator_t *i);
+void iterator_destroy(iterator_t *i);
 
 #endif
