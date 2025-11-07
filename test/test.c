@@ -1,98 +1,142 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
 #include "../include/cbs.h"
+#include <assert.h>
+#include <stdio.h>
+#include <string.h>
 
-void test_n0() {
-    iterator_t iter;
-    nachalo_iteracii(&iter, 0);
-    assert(poluchit_tekuyee(&iter) != NULL);
-    assert(poluchit_tekuyee(&iter)->dlina == 0);
-    zakonchit_iteraciyu(&iter);
-    printf("n=0 test proyden\n");
-}
-
-void test_n1() {
-    iterator_t iter;
-    nachalo_iteracii(&iter, 1);
-    assert(strcmp(poluchit_tekuyee(&iter)->skobki, "()") == 0);
-    assert(est_li_sleduyushiy(&iter) == 0);
-    zakonchit_iteraciyu(&iter);
-    printf("n=1 test proyden\n");
-}
-
-void test_n2() {
-    iterator_t iter;
-    nachalo_iteracii(&iter, 2);
-    
-    assert(strcmp(poluchit_tekuyee(&iter)->skobki, "(())") == 0);
-    assert(est_li_sleduyushiy(&iter) == 1);
-    
-    pereyti_k_sleduyushemu(&iter);
-    assert(strcmp(poluchit_tekuyee(&iter)->skobki, "()()") == 0);
-    assert(est_li_sleduyushiy(&iter) == 0);
-    
-    zakonchit_iteraciyu(&iter);
-    printf("n=2 test proyden\n");
-}
-
-void test_n3() {
-    iterator_t iter;
-    nachalo_iteracii(&iter, 3);
-    
-    printf("Pervaya: %s\n", poluchit_tekuyee(&iter)->skobki);
-    
-    const char* expected[] = {"((()))", "(()())", "(())()", "()(())", "()()()"};
-    int count = 0;
-    
-    while (poluchit_tekuyee(&iter) != NULL) {
-        printf("Polucheno: %s, Ozhidalos: %s\n", poluchit_tekuyee(&iter)->skobki, expected[count]);
-        assert(strcmp(poluchit_tekuyee(&iter)->skobki, expected[count]) == 0);
-        count++;
-        if (est_li_sleduyushiy(&iter)) {
-            pereyti_k_sleduyushemu(&iter);
-        } else {
-            break;
-        }
+// Проверка правильности скобочной последовательности
+static int is_valid_sequence(const char *seq, unsigned n) {
+    int balance = 0;
+    for (unsigned i = 0; i < 2*n; i++) {
+        if (seq[i] == '(') balance++;
+        else balance--;
+        if (balance < 0) return 0;
     }
-    
-    assert(count == 5);
-    zakonchit_iteraciyu(&iter);
-    printf("n=3 test proyden\n");
+    return balance == 0;
 }
 
-void test_validnost() {
-    iterator_t iter;
-    nachalo_iteracii(&iter, 5);
+// Тест чисел Каталана
+static void test_catalan_numbers() {
+    unsigned catalan[] = {1, 1, 2, 5, 14, 42, 132, 429, 1430, 58786};
     
-    while (poluchit_tekuyee(&iter) != NULL) {
-        const my_bs_t* val = poluchit_tekuyee(&iter);
-        int balans = 0;
-        for (unsigned i = 0; i < val->dlina; i++) {
-            if (val->skobki[i] == '(') balans++;
-            else balans--;
-            assert(balans >= 0);
-        }
-        assert(balans == 0);
+    for (unsigned n = 0; n <= 5; n++) {
+        iterator_t it;
+        iterator_init(&it, n);
         
-        if (est_li_sleduyushiy(&iter)) {
-            pereyti_k_sleduyushemu(&iter);
-        } else {
-            break;
+        unsigned count = 0;
+        do {
+            assert(is_valid_sequence(iterator_value(&it)->sequence, n));
+            count++;
+            iterator_next(&it);
+        } while (iterator_has_next(&it));
+        
+        printf("n = %u: %u sequences (expected %u)\n", n, count, catalan[n]);
+        assert(count == catalan[n]);
+        iterator_destroy(&it);
+    }
+}
+
+// Тест уникальности последовательностей
+static void test_uniqueness(unsigned n) {
+    iterator_t it;
+    iterator_init(&it, n);
+    
+    unsigned capacity = 1000;
+    unsigned count = 0;
+    char **sequences = (char**)malloc(capacity * sizeof(char*));
+    
+    do {
+        if (count >= capacity) {
+            capacity *= 2;
+            sequences = (char**)realloc(sequences, capacity * sizeof(char*));
+        }
+        sequences[count] = strdup(iterator_value(&it)->sequence);
+        count++;
+        iterator_next(&it);
+    } while (iterator_has_next(&it));
+    
+    // Проверка на дубликаты
+    for (unsigned i = 0; i < count; i++) {
+        for (unsigned j = i + 1; j < count; j++) {
+            if (strcmp(sequences[i], sequences[j]) == 0) {
+                printf("Duplicate found: %s\n", sequences[i]);
+                assert(0);
+            }
         }
     }
     
-    zakonchit_iteraciyu(&iter);
-    printf("validnost test proyden\n");
+    // Очистка
+    for (unsigned i = 0; i < count; i++) {
+        free(sequences[i]);
+    }
+    free(sequences);
+    iterator_destroy(&it);
+}
+
+// Тест граничных значений
+static void test_edge_cases() {
+    // n = 0
+    iterator_t it;
+    iterator_init(&it, 0);
+    assert(strcmp(iterator_value(&it)->sequence, "") == 0);
+    assert(!iterator_has_next(&it));
+    iterator_destroy(&it);
+
+    // n = 1
+    iterator_init(&it, 1);
+    assert(strcmp(iterator_value(&it)->sequence, "()") == 0);
+    assert(!iterator_has_next(&it));
+    iterator_destroy(&it);
+}
+
+// Тест порядка последовательностей
+static void test_sequence_order() {
+    // Для n=3 проверяем известные последовательности в правильном порядке
+    const char *expected[] = {"((()))", "(()())", "(())()", "()(())", "()()()"};
+    
+    iterator_t it;
+    iterator_init(&it, 3);
+    
+    for (int i = 0; i < 5; i++) {
+        assert(strcmp(iterator_value(&it)->sequence, expected[i]) == 0);
+        if (i < 4) assert(iterator_has_next(&it));
+        iterator_next(&it);
+    }
+    assert(!iterator_has_next(&it));
+    iterator_destroy(&it);
+}
+
+// Тест на утечки памяти
+static void test_memory_leaks() {
+    for (unsigned n = 0; n <= 10; n++) {
+        iterator_t it;
+        iterator_init(&it, n);
+        
+        while (iterator_has_next(&it)) {
+            iterator_next(&it);
+        }
+        
+        iterator_destroy(&it);
+    }
 }
 
 int main() {
-    test_n0();
-    test_n1();
-    test_n2();
-    test_n3();
-    test_validnost();
-    printf("Vse testy proydeny uspeshno!\n");
+    printf("Testing edge cases...\n");
+    test_edge_cases();
+    
+    printf("Testing sequence order...\n");
+    test_sequence_order();
+    
+    printf("Testing uniqueness...\n");
+    for (unsigned n = 0; n <= 5; n++) {
+        test_uniqueness(n);
+    }
+    
+    printf("Testing Catalan numbers...\n");
+    test_catalan_numbers();
+    
+    printf("Testing memory leaks...\n");
+    test_memory_leaks();
+    
+    printf("All tests passed!\n");
     return 0;
 }
